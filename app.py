@@ -242,14 +242,12 @@ def _speak(text: str):
 # ==========================================================================
 
 PLAN_PLACEHOLDER = (
-    '<div class="plan-placeholder">'
-    '<div class="plan-placeholder-icon">🗓️</div>'
-    "<div>No study plan yet.</div>"
-    "<div>Ask StudyVoice to create one, for example:</div>"
-    '<div class="plan-placeholder-example">'
-    '"I have a Python exam tomorrow, make me a 5 hour study plan '
-    'focused on loops, functions, and OOP."'
-    "</div>"
+    '<div class="plan-empty-state fade-in">'
+    '<div class="plan-empty-icon">✧</div>'
+    '<div class="plan-placeholder-title">Ready for your schedule</div>'
+    '<div class="plan-placeholder-copy">'
+    'Describe your subjects, how much time you have, and your learning goals to generate an optimized study plan.'
+    '</div>'
     "</div>"
 )
 
@@ -270,8 +268,8 @@ def render_plan_markdown(plan_dict):
     title = plan_dict.get("title") or "Today's Study Plan"
     blocks = plan_dict.get("blocks") or []
 
-    html = [f'<div class="plan-title">{_plan_escape(title)}</div>']
-    html.append('<div class="plan-timeline">')
+    html = [f'<div class="plan-title slide-up">{_plan_escape(title)}</div>']
+    html.append('<div class="plan-timeline slide-up">')
     for b in blocks:
         time_range = _plan_escape(b.get("time_range", ""))
         topic = _plan_escape(b.get("topic", ""))
@@ -279,9 +277,15 @@ def render_plan_markdown(plan_dict):
         is_break = "break" in topic.lower()
         block_class = "plan-block plan-break" if is_break else "plan-block"
         goal_html = f'<div class="plan-goal">{goal}</div>' if goal else ""
+        
+        marker_class = "timeline-marker-break" if is_break else "timeline-marker-study"
+        
         html.append(
             f'<div class="{block_class}">'
+            f'<div class="plan-time-col">'
             f'<div class="plan-time">{time_range}</div>'
+            f'<div class="timeline-marker {marker_class}"></div>'
+            f'</div>'
             f'<div class="plan-block-content">'
             f'<div class="plan-topic">{topic}</div>'
             f"{goal_html}"
@@ -542,39 +546,39 @@ def _e(t):
 
 
 def render_quiz_left(qs: dict) -> str:
+    def _meta_item(label, value):
+        return (
+            '<div class="quiz-meta-item">'
+            f'<div class="quiz-meta-label">{_e(label)}</div>'
+            f'<div class="quiz-meta-value">{_e(value)}</div>'
+            '</div>'
+        )
+
     if not qs.get("active") and not qs.get("completed"):
         return (
-            '<div class="quiz-side-panel">'
-            '<div class="quiz-side-label">TOPIC</div>'
-            '<div class="quiz-side-value quiz-topic-idle">Waiting to start…</div>'
-            '<div class="quiz-side-label" style="margin-top:18px">STATUS</div>'
-            '<div class="quiz-side-value">Say: <em>"Quiz me on Python OOP for five questions."</em></div>'
-            "</div>"
+            '<div class="quiz-meta-row fade-in">'
+            + _meta_item("Topic", "Waiting to start")
+            + _meta_item("Question", "0 of 5")
+            + '</div>'
         )
     topic = _e(qs.get("topic", ""))
-    if qs.get("completed"):
-        status_html = '<span class="quiz-badge quiz-badge-done">✓ COMPLETE</span>'
-    elif qs.get("active"):
-        status_html = '<span class="quiz-badge quiz-badge-active">● ACTIVE</span>'
-    else:
-        status_html = ""
+    qnum = qs.get("current_question_num", 0)
+    total = qs.get("total_questions", 5)
     return (
-        '<div class="quiz-side-panel">'
-        f'<div class="quiz-side-label">TOPIC</div>'
-        f'<div class="quiz-side-value quiz-topic-active">{topic}</div>'
-        f'<div class="quiz-side-label" style="margin-top:18px">STATUS</div>'
-        f'<div class="quiz-side-value">{status_html}</div>'
-        "</div>"
+        '<div class="quiz-meta-row slide-up">'
+        f'<div class="quiz-meta-item"><div class="quiz-meta-label">Topic</div><div class="quiz-meta-value">{topic}</div></div>'
+        + _meta_item("Question", f"{qnum} of {total}")
+        + '</div>'
     )
 
 
 def render_quiz_center(qs: dict, feedback: str = "") -> str:
     if not qs.get("active") and not qs.get("completed"):
         return (
-            '<div class="quiz-idle-hero">'
-            '<div class="quiz-idle-icon">🧠</div>'
+            '<div class="quiz-idle-hero fade-in">'
+            '<div class="quiz-idle-icon">✦</div>'
             '<div class="quiz-idle-title">Voice Quiz</div>'
-            '<div class="quiz-idle-sub">Test what you know. StudyVoice adapts to every answer.</div>'
+            '<div class="quiz-idle-sub">Test your knowledge. Speak to begin.</div>'
             '<div class="quiz-idle-hint">"Quiz me on Python OOP for five questions."</div>'
             "</div>"
         )
@@ -582,28 +586,25 @@ def render_quiz_center(qs: dict, feedback: str = "") -> str:
     if qs.get("completed"):
         score = qs.get("score", 0)
         total = qs.get("total_questions", 5)
-        strong = ", ".join(qs.get("strong_areas", [])) or "—"
-        weak = ", ".join(qs.get("weak_areas", [])) or "—"
+        strong = ", ".join(qs.get("strong_areas", [])) or "None yet"
+        weak = ", ".join(qs.get("weak_areas", [])) or "None yet"
         perf = _e(qs.get("performance_summary", ""))
         next_action = _e(qs.get("recommended_next_action", ""))
         diagnosis = _e(qs.get("diagnosis", ""))
         return (
-            '<div class="quiz-center-panel quiz-complete-panel">'
+            '<div class="quiz-complete-panel slide-up">'
             '<div class="quiz-complete-header">'
-            '<div>'
-            '<div class="quiz-complete-title">🏁 Quiz Complete</div>'
+            '<div class="quiz-complete-title">Quiz Complete</div>'
             f'<div class="quiz-score-big">{score} <span class="quiz-score-denom">/ {total}</span></div>'
-            '<div class="quiz-score-sub">Final Score</div>'
-            '</div>'
             '</div>'
             '<div class="quiz-complete-body">'
-            f'<div class="quiz-complete-section-full"><span class="quiz-label-sm">Performance Summary</span><div>{perf}</div></div>'
+            f'<div class="quiz-complete-section"><div class="quiz-label-sm">Performance summary</div><div class="quiz-section-content">{perf}</div></div>'
             '<div class="quiz-complete-row">'
-            f'<div class="quiz-complete-section"><span class="quiz-label-sm">Strong Areas</span><div class="quiz-area-good">{_e(strong)}</div></div>'
-            f'<div class="quiz-complete-section"><span class="quiz-label-sm">Needs Work</span><div class="quiz-area-weak">{_e(weak)}</div></div>'
+            f'<div class="quiz-complete-section"><div class="quiz-label-sm">Strong areas</div><div class="quiz-section-content">{_e(strong)}</div></div>'
+            f'<div class="quiz-complete-section"><div class="quiz-label-sm">Needs work</div><div class="quiz-section-content">{_e(weak)}</div></div>'
             '</div>'
-            f'<div class="quiz-complete-section-full"><span class="quiz-label-sm">AI Diagnosis</span><div>{diagnosis}</div></div>'
-            f'<div class="quiz-complete-section-full"><span class="quiz-label-sm">Recommended Next Action</span><div class="quiz-next-action">{next_action}</div></div>'
+            f'<div class="quiz-complete-section"><div class="quiz-label-sm">Diagnosis</div><div class="quiz-section-content">{diagnosis}</div></div>'
+            f'<div class="quiz-complete-section quiz-action-card"><div class="quiz-label-sm">Recommended Next Action</div><div class="quiz-next-action">{next_action}</div></div>'
             '</div>'
             "</div>"
         )
@@ -612,11 +613,11 @@ def render_quiz_center(qs: dict, feedback: str = "") -> str:
     total = qs.get("total_questions", 5)
     question = _e(qs.get("current_question", ""))
     feedback_html = (
-        f'<div class="quiz-feedback">{_e(feedback)}</div>' if feedback else ""
+        f'<div class="quiz-feedback slide-up">{_e(feedback)}</div>' if feedback else ""
     )
     return (
-        '<div class="quiz-center-panel">'
-        f'<div class="quiz-qnum">QUESTION {qnum} OF {total}</div>'
+        '<div class="quiz-center-panel slide-up">'
+        f'<div class="quiz-qnum">Question {qnum} of {total}</div>'
         f'<div class="quiz-question">{question}</div>'
         f'{feedback_html}'
         "</div>"
@@ -624,44 +625,31 @@ def render_quiz_center(qs: dict, feedback: str = "") -> str:
 
 
 def render_quiz_right(qs: dict) -> str:
+    def _meta_item(label, value):
+        return (
+            '<div class="quiz-meta-item">'
+            f'<div class="quiz-meta-label">{_e(label)}</div>'
+            f'<div class="quiz-meta-value">{_e(value)}</div>'
+            '</div>'
+        )
+    
     if not qs.get("active") and not qs.get("completed"):
         return (
-            '<div class="quiz-side-panel">'
-            '<div class="quiz-side-label">SCORE</div>'
-            '<div class="quiz-side-value">—</div>'
-            "</div>"
+            '<div class="quiz-meta-row fade-in">'
+            + _meta_item("Score", "0 / 5")
+            + _meta_item("Difficulty", "Medium")
+            + '</div>'
         )
 
     score = qs.get("score", 0)
     total = qs.get("total_questions", 5)
-    diff = _e(qs.get("difficulty", "medium").upper())
-    qnum = qs.get("current_question_num", 0)
-    strong = qs.get("strong_areas", [])
-    weak = qs.get("weak_areas", [])
-
-    # Progress bar
-    pct = int((qnum / total) * 100) if total else 0
-    strong_html = "".join(f'<div class="quiz-area-tag quiz-area-strong">{_e(a)}</div>' for a in strong) or "<em>None yet</em>"
-    weak_html = "".join(f'<div class="quiz-area-tag quiz-area-weak-tag">{_e(a)}</div>' for a in weak) or "<em>None yet</em>"
-
-    diff_color = {"easy": "#34D399", "medium": "#FBBF24", "hard": "#FB7185"}.get(qs.get("difficulty", "medium"), "#94A3B8")
-
+    diff = _e(str(qs.get("difficulty", "medium")).title())
     return (
-        '<div class="quiz-side-panel">'
-        f'<div class="quiz-side-label">SCORE</div>'
-        f'<div class="quiz-score-display">{score} <span class="quiz-score-denom">/ {total}</span></div>'
-        f'<div class="quiz-side-label" style="margin-top:14px">DIFFICULTY</div>'
-        f'<div class="quiz-diff-badge" style="color:{diff_color}">{diff}</div>'
-        f'<div class="quiz-side-label" style="margin-top:14px">PROGRESS</div>'
-        f'<div class="quiz-progress-bar"><div class="quiz-progress-fill" style="width:{pct}%"></div></div>'
-        f'<div class="quiz-progress-label">{qnum} / {total} answered</div>'
-        f'<div class="quiz-side-label" style="margin-top:14px">STRONG AREAS</div>'
-        f'<div class="quiz-areas-container">{strong_html}</div>'
-        f'<div class="quiz-side-label" style="margin-top:12px">WEAK AREAS</div>'
-        f'<div class="quiz-areas-container">{weak_html}</div>'
-        "</div>"
+        '<div class="quiz-meta-row slide-up">'
+        + _meta_item("Score", f"{score} / {total}")
+        + _meta_item("Difficulty", diff)
+        + '</div>'
     )
-
 
 # ==========================================================================
 # QUIZ TURN HANDLERS  (Phase 4)
@@ -964,13 +952,12 @@ def _render_ga_conversation(ga_history: list) -> str:
     """Render General Assistant conversation history as styled HTML."""
     if not ga_history:
         return (
-            '<div class="ga-empty-state">'
-            '<div class="ga-empty-icon">💬</div>'
-            '<div class="ga-empty-title">Ask anything.</div>'
-            '<div class="ga-empty-sub">Type it. Say it. Learn it. Then turn it into a quiz.</div>'
+            '<div class="ga-empty-state fade-in">'
+            '<div class="ga-empty-title">How can I help you learn?</div>'
+            '<div class="ga-empty-sub">Type or speak your questions. Turn any concept into a voice quiz when you are ready.</div>'
             '<div class="ga-empty-hints">'
-            '<div class="ga-hint-chip">Explain recursion simply.</div>'
-            '<div class="ga-hint-chip">Give me three startup ideas.</div>'
+            '<div class="ga-hint-chip">Explain recursion simply</div>'
+            '<div class="ga-hint-chip">Give me three startup ideas</div>'
             '<div class="ga-hint-chip">What causes black holes?</div>'
             '</div>'
             '</div>'
@@ -982,16 +969,15 @@ def _render_ga_conversation(ga_history: list) -> str:
         text = _plan_escape(turn.get("text", ""))
         if role == "user":
             parts.append(
-                f'<div class="ga-msg ga-msg-user">'
-                f'<span class="ga-msg-label">You</span>'
-                f'<div class="ga-msg-text">{text}</div>'
+                f'<div class="ga-msg ga-msg-user slide-up">'
+                f'<div class="ga-msg-content">{text}</div>'
                 f'</div>'
             )
         else:
             parts.append(
-                f'<div class="ga-msg ga-msg-assistant">'
-                f'<span class="ga-msg-label">StudyVoice</span>'
-                f'<div class="ga-msg-text">{text}</div>'
+                f'<div class="ga-msg ga-msg-assistant slide-up">'
+                f'<div class="ga-icon-wrapper"><span class="ga-ai-icon">✧</span></div>'
+                f'<div class="ga-msg-content">{text}</div>'
                 f'</div>'
             )
     return '<div class="ga-conversation">' + "".join(parts) + '</div>'
@@ -1084,7 +1070,7 @@ def handle_ga_text(user_text: str, ga_history: list, conv_html: str, quiz_state:
     if action.action_type == "start_quiz" and action.quiz_topic:
         topic = action.quiz_topic.strip()
         new_quiz_state, ql, qc, qr, _, _, _ = _ga_launch_quiz(topic, quiz_state)
-        status = f"Your quiz on '{topic}' is ready — open the Voice Quiz tab."
+        status = f"Your quiz on '{topic}' is ready. Open the Voice Quiz tab."
         return (ga_history, updated_html, status, audio_out, "",
                 new_quiz_state, ql, qc, qr)
 
@@ -1148,7 +1134,7 @@ def handle_ga_voice(audio_path, ga_history: list, conv_html: str, quiz_state: di
     if action.action_type == "start_quiz" and action.quiz_topic:
         topic = action.quiz_topic.strip()
         new_quiz_state, ql, qc, qr, _, _, _ = _ga_launch_quiz(topic, quiz_state)
-        status = f"Your quiz on '{topic}' is ready — open the Voice Quiz tab."
+        status = f"Your quiz on '{topic}' is ready. Open the Voice Quiz tab."
         return (ga_history, updated_html, status, audio_out, None,
                 new_quiz_state, ql, qc, qr)
 
@@ -1224,821 +1210,374 @@ def _ga_launch_quiz(topic: str, current_quiz_state: dict):
 
 
 # ==========================================================================
-# UI – CSS (extends Phase 3 styles)
+# UI – CSS  (Minimalist Premium AI Product Upgrade)
 # ==========================================================================
 
 CUSTOM_CSS = """
-/* ===================================================================
-   StudyVoice Final – Midnight + Electric Cyan
-   Palette: #070B14 bg | #0D1424 surface | #131D30 elevated
-   Accent:  #22D3EE cyan | #60A5FA blue
-   Text:    #F8FAFC main | #94A3B8 muted
-   Border:  #1E293B subtle
-   Status:  #34D399 success | #FBBF24 warning | #FB7185 error
-   =================================================================== */
+@import url('[https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap](https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap)');
 
 :root {
-    --sv-bg:          #070B14;
-    --sv-surface:     #0D1424;
-    --sv-elevated:    #131D30;
-    --sv-accent:      #22D3EE;
-    --sv-accent2:     #60A5FA;
-    --sv-text:        #F8FAFC;
-    --sv-text-sec:    #94A3B8;
-    --sv-success:     #34D399;
-    --sv-warning:     #FBBF24;
-    --sv-error:       #FB7185;
-    --sv-border:      #1E293B;
-    --sv-border-soft: rgba(255, 255, 255, 0.06);
+  --bg-app: #FAFAFA;
+  --bg-surface: #FFFFFF;
+  --bg-hover: #F3F4F6;
+  --text-main: #111827;
+  --text-muted: #6B7280;
+  --text-inverse: #FFFFFF;
+  --border-color: #E5E7EB;
+  --accent: #FF5A1F;
+  --accent-hover: #E84D16;
+  --accent-soft: #FFF2ED;
+  --accent-muted: #FFD8CB;
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-lg: 16px;
+  --radius-full: 9999px;
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.05);
+  --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03);
+  --shadow-float: 0 10px 15px -3px rgba(0, 0, 0, 0.05), 0 4px 6px -2px rgba(0, 0, 0, 0.025);
+  --shell: 1100px;
+  --transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
-/* ── Base ── */
+/* Base Gradio Overrides */
+html, body {
+  margin: 0 !important;
+  background: var(--bg-app) !important;
+  color: var(--text-main) !important;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif !important;
+  -webkit-font-smoothing: antialiased;
+}
 .gradio-container {
-    background: var(--sv-bg) !important;
-    max-width: 1440px !important;
-    color: var(--sv-text) !important;
-    min-height: 100vh;
-    padding: 0 8px !important;
+  width: 100% !important;
+  max-width: none !important;
+  min-height: 100vh !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  background: var(--bg-app) !important;
 }
-.gradio-container, .gradio-container * {
-    font-family: 'Inter', 'Segoe UI', -apple-system, BlinkMacSystemFont, sans-serif !important;
-    box-sizing: border-box;
-}
-/* Kill default Gradio white backgrounds everywhere */
-.gradio-container .wrap,
-.gradio-container .form,
-.gradio-container .block,
-.gradio-container > div,
-.gradio-container .gap,
-.gradio-container .tabs,
-.gradio-container .tabitem {
-    background: transparent !important;
+.gradio-container > div:first-child {
+  max-width: var(--shell) !important;
+  margin: 0 auto !important;
+  padding: 0 24px 64px !important;
 }
 footer { display: none !important; }
+.block, .form, .wrap, .gap, .tabs, .tabitem {
+  background: transparent !important;
+  border: 0 !important;
+  box-shadow: none !important;
+}
+button, input, textarea, select { font-family: inherit !important; }
 
-/* ── Scrollbars ── */
-::-webkit-scrollbar { width: 4px; }
-::-webkit-scrollbar-track { background: transparent; }
-::-webkit-scrollbar-thumb { background: rgba(34,211,238,0.25); border-radius: 4px; }
+/* Hidden Audio Outputs */
+.sv-audio-out {
+  position: fixed !important;
+  width: 1px !important;
+  height: 1px !important;
+  opacity: 0 !important;
+  pointer-events: none !important;
+  overflow: hidden !important;
+}
 
-/* ── Header ── */
-#app_header { padding: 10px 4px 0 4px; }
-.header-content {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-}
-.header-left { display: flex; align-items: center; gap: 10px; }
-.logo-icon { font-size: 22px; line-height: 1; }
-.app-title {
-    font-size: 18px;
-    font-weight: 700;
-    color: var(--sv-text);
-    letter-spacing: -0.3px;
-}
-.app-subtitle-small {
-    font-size: 11px;
-    color: var(--sv-text-sec);
-    font-weight: 400;
-    margin-top: 1px;
-}
-.status-badge {
-    display: inline-flex;
-    align-items: center;
-    gap: 5px;
-    background: rgba(52, 211, 153, 0.07);
-    border: 1px solid rgba(52, 211, 153, 0.22);
-    color: var(--sv-success);
-    font-size: 11px;
-    font-weight: 600;
-    padding: 4px 10px;
-    border-radius: 999px;
-    white-space: nowrap;
-}
-.status-dot {
-    width: 6px;
-    height: 6px;
-    border-radius: 50%;
-    background: var(--sv-success);
-    flex-shrink: 0;
-}
-/* Remove verbose tagline – wasted vertical space */
-.header-tagline { display: none; }
+/* Animations */
+@keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+@keyframes slideUp { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+.fade-in { animation: fadeIn 0.4s ease-out forwards; }
+.slide-up { animation: slideUp 0.5s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
 
-/* ── Tab nav ── */
+/* Header */
+#sv-header {
+  height: 80px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-bottom: 1px solid var(--border-color);
+  background: var(--bg-app);
+  margin-bottom: 32px;
+}
+.sv-logo-row { display: flex; align-items: center; gap: 12px; }
+.sv-wordmark { color: var(--text-main); font-size: 20px; font-weight: 700; letter-spacing: -0.02em; }
+.sv-tagline { color: var(--text-muted); font-size: 14px; font-weight: 400; margin-left: 12px; padding-left: 12px; border-left: 1px solid var(--border-color); }
+.sv-online-dot { display: inline-flex; align-items: center; gap: 8px; color: var(--text-muted); font-size: 13px; font-weight: 500; }
+.sv-online-dot:before { content: ""; width: 8px; height: 8px; border-radius: 50%; background: #10B981; }
+
+/* Navigation Tabs */
+.tab-nav { border-bottom: 1px solid var(--border-color) !important; background: transparent !important; margin: 0 0 40px 0 !important; gap: 32px !important; display: flex !important; flex-wrap: nowrap !important; overflow-x: auto !important; padding-bottom: 1px !important;}
 .tab-nav button {
-    font-size: 13px !important;
-    font-weight: 600 !important;
-    letter-spacing: 0.4px !important;
-    padding: 7px 18px !important;
-    color: var(--sv-text-sec) !important;
-    background: transparent !important;
-    border: none !important;
-    border-bottom: 2px solid transparent !important;
-    border-radius: 0 !important;
+  padding: 0 0 12px 0 !important; margin: 0 32px 0 0 !important; border: 0 !important; border-radius: 0 !important;
+  background: transparent !important; color: var(--text-muted) !important;
+  font-size: 15px !important; font-weight: 500 !important; box-shadow: none !important;
+  border-bottom: 2px solid transparent !important; transition: var(--transition) !important;
 }
-.tab-nav button.selected {
-    color: var(--sv-accent) !important;
-    border-bottom: 2px solid var(--sv-accent) !important;
-    background: transparent !important;
-}
-.tab-nav {
-    border-bottom: 1px solid var(--sv-border) !important;
-    background: transparent !important;
-    margin-bottom: 10px !important;
-    margin-top: 6px !important;
-}
+.tab-nav button:hover { color: var(--text-main) !important; }
+.tab-nav button.selected { color: var(--accent) !important; border-bottom-color: var(--accent) !important; }
 
-/* ── Panel cards ── */
-.panel-card {
-    background: var(--sv-surface) !important;
-    border: 1px solid var(--sv-border) !important;
-    border-radius: 10px !important;
-    padding: 12px !important;
-    box-shadow: 0 2px 10px rgba(0,0,0,0.4) !important;
-}
-.card-label {
-    font-size: 9.5px;
-    font-weight: 700;
-    letter-spacing: 1.8px;
-    color: var(--sv-accent);
-    margin-bottom: 8px;
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    text-transform: uppercase;
-}
-.card-label::after {
-    content: "";
-    flex: 1;
-    height: 1px;
-    background: var(--sv-border);
-}
+/* Typography */
+.sv-page-head { margin-bottom: 40px; }
+.sv-page-title, .ga-empty-title { font-size: 36px !important; line-height: 1.1 !important; font-weight: 700 !important; color: var(--text-main) !important; letter-spacing: -0.03em !important; }
+.sv-page-sub, .ga-empty-sub { margin-top: 12px; color: var(--text-muted) !important; font-size: 16px !important; line-height: 1.6 !important; max-width: 600px !important; font-weight: 400 !important; }
 
-/* ── Native Gradio component overrides ── */
-.gradio-container .audio-component,
-.gradio-container [data-testid="audio"] {
-    background: var(--sv-elevated) !important;
-    border: 1px solid var(--sv-border) !important;
-    border-radius: 8px !important;
-}
-/* Compact audio output – no giant player */
-.audio-output { margin-bottom: 6px !important; }
-.audio-output > div { padding: 6px 8px !important; }
+/* General Assistant Workspace */
+.sv-workspace { width: 100% !important; min-height: 0 !important; }
+.ga-empty-state { text-align: left !important; padding: 40px 0 !important; }
+.ga-empty-hints { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 24px; }
+.ga-hint-chip, .quiz-idle-hint { padding: 8px 16px; border: 1px solid var(--border-color); border-radius: var(--radius-full); background: var(--bg-surface); color: var(--text-muted); font-size: 13px; font-weight: 500; cursor: pointer; transition: var(--transition); }
+.ga-hint-chip:hover { border-color: var(--text-muted); color: var(--text-main); }
 
-/* All textareas */
+/* Conversation */
+#ga_conv { min-height: 100px !important; }
+.ga-conversation { display: flex; flex-direction: column; gap: 24px; padding-bottom: 40px; }
+.ga-msg { display: flex; width: 100%; max-width: 800px; }
+.ga-msg-user { justify-content: flex-end; align-self: flex-end; }
+.ga-msg-user .ga-msg-content { background: var(--bg-surface); border: 1px solid var(--border-color); color: var(--text-main); border-radius: 16px 16px 4px 16px; }
+.ga-msg-assistant { justify-content: flex-start; align-self: flex-start; gap: 16px; }
+.ga-msg-assistant .ga-msg-content { background: transparent; color: var(--text-main); padding: 0 !important; }
+.ga-icon-wrapper { width: 32px; height: 32px; border-radius: 8px; background: var(--accent-soft); display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+.ga-ai-icon { color: var(--accent); font-size: 16px; }
+.ga-msg-content { padding: 12px 16px; font-size: 15px; line-height: 1.6; }
+
+/* Composer / Inputs */
+.ga-composer-row { display: flex !important; gap: 12px !important; align-items: flex-end !important; background: transparent !important; margin-bottom: 24px !important;}
+.ga-text-input { flex: 1 1 auto !important; min-width: 0 !important; }
 .gradio-container textarea {
-    background: var(--sv-elevated) !important;
-    border: 1px solid var(--sv-border) !important;
-    border-radius: 8px !important;
-    color: var(--sv-text) !important;
-    font-size: 14px !important;
-    line-height: 1.65 !important;
-    padding: 8px 12px !important;
+  background: var(--bg-surface) !important; border: 1px solid var(--border-color) !important; border-radius: var(--radius-md) !important; color: var(--text-main) !important;
+  box-shadow: var(--shadow-sm) !important; font-size: 15px !important; line-height: 1.5 !important; transition: var(--transition) !important; padding: 16px !important; resize: none !important;
 }
-.gradio-container textarea::placeholder { color: var(--sv-text-sec) !important; opacity: 0.6; }
-/* Labels */
-.gradio-container label span,
-.gradio-container .label-wrap span {
-    color: var(--sv-text-sec) !important;
-    font-size: 11px !important;
-    font-weight: 500 !important;
-}
+.gradio-container textarea:focus { border-color: var(--accent) !important; box-shadow: 0 0 0 2px var(--accent-soft) !important; outline: none !important; }
+.gradio-container textarea::placeholder { color: #9CA3AF !important; }
+.ga-composer-row textarea { min-height: 56px !important; max-height: 120px !important; }
 
-/* ── Mic inputs – compact, no extra chrome ── */
-#mic_input, #quiz_mic_input {
-    border-radius: 8px !important;
-    background: var(--sv-elevated) !important;
-}
-.mic-instruction {
-    text-align: center;
-    color: var(--sv-text-sec);
-    font-size: 12px;
-    margin: 5px 0 4px 0;
-    line-height: 1.5;
-}
+.sv-send-btn { min-width: 100px !important; height: 56px !important; border: 0 !important; border-radius: var(--radius-md) !important; background: var(--text-main) !important; color: var(--text-inverse) !important; font-size: 14px !important; font-weight: 600 !important; transition: var(--transition) !important; cursor: pointer !important; }
+.sv-send-btn:hover { background: #000000 !important; transform: translateY(-1px) !important; box-shadow: var(--shadow-md) !important; }
 
-/* Status textbox – hide when empty, compact when visible */
-.status-textbox textarea {
-    background: var(--sv-elevated) !important;
-    border: 1px solid var(--sv-border) !important;
-    border-radius: 8px !important;
-    color: var(--sv-text-sec) !important;
-    font-size: 12.5px !important;
-    min-height: 36px !important;
-    max-height: 52px !important;
-}
+.sv-divider { display: flex; align-items: center; gap: 16px; margin: 32px 0; color: var(--text-muted); font-size: 12px; font-weight: 600; letter-spacing: 0.05em; text-transform: uppercase; }
+.sv-divider:before, .sv-divider:after { content: ""; height: 1px; background: var(--border-color); flex: 1; }
 
-/* ── STUDY AGENT LAYOUT ── */
+.ga-bottom-row { gap: 32px !important; align-items: flex-start !important; }
+.ga-context-box { padding: 16px; background: var(--bg-surface); border: 1px solid var(--border-color); border-radius: var(--radius-md); font-size: 13px; line-height: 1.5; }
+.ga-context-label { color: var(--text-muted); font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 4px; }
+.ga-context-topic { color: var(--text-main); font-size: 14px; font-weight: 500; }
+.ga-context-idle { color: var(--text-muted); font-style: italic; }
 
-/* Voice control bar on top */
-#sa_top_bar {
-    margin-bottom: 8px;
-}
-#sa_top_bar .panel-card {
-    display: flex;
-    flex-direction: row;
-    align-items: center;
-    gap: 14px;
-    padding: 10px 16px !important;
-    flex-wrap: wrap;
-}
-#sa_top_bar .card-label { display: none; }
-#sa_top_bar #mic_input { flex: 0 0 auto; min-width: 220px; max-width: 300px; }
-#sa_top_bar .mic-instruction { flex: 1; text-align: left; margin: 0; }
-#sa_top_bar .status-textbox { flex: 1; min-width: 160px; }
-#sa_top_bar .status-textbox textarea { min-height: 32px !important; max-height: 40px !important; }
+/* Status Box */
+.sv-status-box { min-height: 0 !important; margin: 0 !important; }
+.sv-status-box > div { padding: 0 !important; border: 0 !important; }
+.sv-status-box textarea { min-height: 0 !important; height: auto !important; max-height: 60px !important; padding: 12px 16px !important; border: 1px solid var(--accent-muted) !important; border-radius: var(--radius-md) !important; background: var(--accent-soft) !important; color: var(--accent-hover) !important; font-size: 13px !important; }
+.sv-status-box textarea:placeholder-shown { display: none !important; }
 
-/* Conversation + Plan main row */
-.conversation-card { border-color: var(--sv-border) !important; }
-.plan-card { border-color: rgba(96,165,250,0.2) !important; }
+/* Mic Recording UI */
+.sv-mic-hint { color: var(--text-muted); font-size: 13px; font-weight: 500; margin-bottom: 12px; }
+#ga_mic_input, #sa_mic_input, #quiz_mic_input { border: 1px solid var(--border-color) !important; border-radius: var(--radius-md) !important; background: var(--bg-surface) !important; padding: 8px !important; transition: var(--transition) !important; }
+#ga_mic_input:focus-within, #sa_mic_input:focus-within, #quiz_mic_input:focus-within { border-color: var(--accent) !important; box-shadow: 0 0 0 2px var(--accent-soft) !important; }
+#ga_mic_input button, #sa_mic_input button, #quiz_mic_input button { border-radius: var(--radius-sm) !important; color: var(--text-main) !important; }
+#ga_mic_input [aria-label*="Record"], #sa_mic_input [aria-label*="Record"], #quiz_mic_input [aria-label*="Record"] { color: var(--accent) !important; }
 
-.transcript-textbox textarea {
-    background: var(--sv-elevated) !important;
-    border: 1px solid var(--sv-border) !important;
-    border-radius: 8px !important;
-    color: var(--sv-text) !important;
-    font-size: 14px !important;
-    line-height: 1.7 !important;
-    padding: 10px 12px !important;
-    min-height: 280px !important;
-    max-height: 420px !important;
-}
+/* Study Agent Layout */
+.study-grid { display: grid !important; grid-template-columns: minmax(0, 380px) minmax(0, 1fr) !important; gap: 48px !important; align-items: start !important; }
+.study-left, .study-right { min-width: 0 !important; }
+.study-panel { background: var(--bg-surface); border: 1px solid var(--border-color); border-radius: var(--radius-lg); padding: 24px; box-shadow: var(--shadow-sm); margin-bottom: 24px; }
+#transcript_box textarea { min-height: 200px !important; max-height: 300px !important; border: 0 !important; box-shadow: none !important; padding: 0 !important; background: transparent !important; }
+.sa-transcript-box .svelte-1b6s6s { border: 0 !important; background: transparent !important; } /* gradio inner wrap */
+.sv-plan-label { font-size: 14px; font-weight: 600; color: var(--text-main); margin-bottom: 16px; display: block; }
+#sv_plan_panel > div { padding: 0 !important; border: 0 !important; background: transparent !important; }
 
-/* Plan panel – dense timeline */
-#plan_panel { max-height: 440px; overflow-y: auto; padding-right: 2px; }
-#plan_panel .plan-title {
-    font-size: 14px;
-    font-weight: 700;
-    color: var(--sv-text);
-    margin-bottom: 8px;
-    padding-bottom: 6px;
-    border-bottom: 1px solid var(--sv-border);
-}
-#plan_panel .plan-timeline { display: flex; flex-direction: column; gap: 5px; }
-#plan_panel .plan-block {
-    display: flex;
-    gap: 10px;
-    align-items: flex-start;
-    background: var(--sv-elevated);
-    border: 1px solid var(--sv-border);
-    border-left: 3px solid var(--sv-accent);
-    border-radius: 7px;
-    padding: 7px 11px;
-}
-#plan_panel .plan-block.plan-break {
-    border-left: 3px dashed rgba(148,163,184,0.3);
-    background: rgba(255,255,255,0.015);
-    opacity: 0.75;
-}
-#plan_panel .plan-time {
-    flex-shrink: 0;
-    min-width: 82px;
-    font-size: 11px;
-    font-weight: 700;
-    color: var(--sv-accent2);
-    background: rgba(96,165,250,0.08);
-    border: 1px solid rgba(96,165,250,0.18);
-    border-radius: 5px;
-    padding: 2px 6px;
-    text-align: center;
-}
-#plan_panel .plan-block.plan-break .plan-time {
-    color: var(--sv-text-sec);
-    background: rgba(255,255,255,0.03);
-    border-color: var(--sv-border);
-}
-#plan_panel .plan-topic { font-weight: 600; color: var(--sv-text); font-size: 13px; margin-bottom: 1px; }
-#plan_panel .plan-goal { font-size: 11.5px; color: var(--sv-text-sec); line-height: 1.4; }
-#plan_panel .plan-placeholder { text-align: center; padding: 24px 10px; color: var(--sv-text-sec); }
-#plan_panel .plan-placeholder-icon { font-size: 24px; margin-bottom: 7px; }
-#plan_panel .plan-placeholder-example {
-    margin-top: 8px;
-    font-size: 11.5px;
-    font-style: italic;
-    color: var(--sv-accent);
-    background: rgba(34,211,238,0.05);
-    border: 1px solid rgba(34,211,238,0.13);
-    border-radius: 7px;
-    padding: 7px 11px;
-    opacity: 0.85;
-}
+/* Premium Timeline Study Plan */
+.plan-empty-state { text-align: center; padding: 64px 24px; border: 1px dashed var(--border-color); border-radius: var(--radius-lg); color: var(--text-muted); }
+.plan-empty-icon { font-size: 24px; margin-bottom: 16px; color: var(--accent); }
+.plan-placeholder-title { font-size: 18px; font-weight: 600; color: var(--text-main); margin-bottom: 8px; }
+.plan-placeholder-copy { font-size: 14px; line-height: 1.5; max-width: 320px; margin: 0 auto; }
+.plan-title { font-size: 24px; font-weight: 700; color: var(--text-main); margin-bottom: 32px; letter-spacing: -0.02em; }
+.plan-timeline { position: relative; padding-left: 0; }
+.plan-block { display: flex; gap: 48px; padding-bottom: 32px; position: relative; }
+.plan-time-col { width: 100px; flex-shrink: 0; display: flex; flex-direction: column; align-items: flex-end; position: relative; }
+.plan-time { font-size: 13px; font-weight: 600; color: var(--text-muted); text-align: right; }
+.timeline-marker { position: absolute; right: -30px; top: 2px; width: 10px; height: 10px; border-radius: 50%; z-index: 2; border: 2px solid var(--bg-app); }
+.timeline-marker-study { background: var(--text-main); }
+.timeline-marker-break { background: var(--border-color); }
+.plan-block:not(:last-child) .plan-time-col::after { content: ''; position: absolute; right: -26px; top: 12px; bottom: -34px; width: 2px; background: var(--border-color); z-index: 1; }
+.plan-block-content { flex: 1; padding-top: -2px; }
+.plan-topic { font-size: 16px; font-weight: 600; color: var(--text-main); margin-bottom: 4px; }
+.plan-goal { font-size: 14px; line-height: 1.5; color: var(--text-muted); }
+.plan-break .plan-topic { color: var(--text-muted); font-weight: 500; }
 
-/* ========== VOICE QUIZ STYLES ========== */
+/* Voice Quiz Refinement */
+.quiz-meta-shell { display: flex !important; justify-content: space-between !important; gap: 16px !important; margin-bottom: 24px !important; }
+.quiz-meta-row { display: flex; gap: 12px; }
+.quiz-meta-item { background: var(--bg-surface); border: 1px solid var(--border-color); border-radius: var(--radius-md); padding: 12px 16px; min-width: 120px; }
+.quiz-meta-label { font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-muted); margin-bottom: 4px; }
+.quiz-meta-value { font-size: 14px; font-weight: 600; color: var(--text-main); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 200px; }
 
-/* Quiz idle hero – centered, no wasted whitespace */
-.quiz-idle-hero {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    padding: 32px 20px 24px;
-    gap: 10px;
-    text-align: center;
+.quiz-center-panel, .quiz-idle-hero, .quiz-complete-panel {
+  background: var(--bg-surface); border: 1px solid var(--border-color); border-radius: var(--radius-lg); box-shadow: var(--shadow-float); padding: 64px 48px; margin-bottom: 32px; text-align: center; min-height: 380px; display: flex; flex-direction: column; justify-content: center; align-items: center;
 }
-.quiz-idle-icon { font-size: 36px; line-height: 1; margin-bottom: 4px; }
-.quiz-idle-title {
-    font-size: 22px;
-    font-weight: 700;
-    color: var(--sv-text);
-    letter-spacing: -0.3px;
-}
-.quiz-idle-sub {
-    font-size: 13px;
-    color: var(--sv-text-sec);
-    max-width: 320px;
-    line-height: 1.55;
-}
-.quiz-idle-hint {
-    font-size: 12px;
-    font-style: italic;
-    color: var(--sv-accent);
-    background: rgba(34,211,238,0.05);
-    border: 1px solid rgba(34,211,238,0.15);
-    border-radius: 7px;
-    padding: 6px 14px;
-    margin-top: 4px;
-}
+.quiz-idle-icon { font-size: 32px; color: var(--accent); margin-bottom: 24px; }
+.quiz-idle-title { font-size: 24px; font-weight: 700; color: var(--text-main); margin-bottom: 12px; }
+.quiz-idle-sub { color: var(--text-muted); font-size: 15px; margin-bottom: 24px; }
+.quiz-qnum { font-size: 13px; font-weight: 600; color: var(--accent); letter-spacing: 0.05em; text-transform: uppercase; margin-bottom: 24px; }
+.quiz-question { font-size: 32px; font-weight: 700; color: var(--text-main); line-height: 1.3; max-width: 800px; letter-spacing: -0.02em; }
+.quiz-feedback { margin-top: 32px; padding: 16px 24px; background: var(--accent-soft); border: 1px solid var(--accent-muted); border-radius: var(--radius-md); color: var(--text-main); font-size: 15px; line-height: 1.5; max-width: 600px; text-align: left; }
 
-/* Quiz side panel – right sidebar */
-.quiz-side-panel { padding: 0; }
-.quiz-side-label {
-    font-size: 9.5px;
-    font-weight: 700;
-    letter-spacing: 1.6px;
-    color: var(--sv-accent);
-    margin-bottom: 3px;
-    margin-top: 10px;
-    text-transform: uppercase;
-}
-.quiz-side-label:first-child { margin-top: 0; }
-.quiz-side-value {
-    font-size: 13px;
-    color: var(--sv-text);
-    line-height: 1.5;
-}
-.quiz-topic-idle { color: var(--sv-text-sec); font-style: italic; }
-.quiz-topic-active { color: var(--sv-text); font-weight: 600; font-size: 13px; }
+.quiz-complete-panel { align-items: stretch; text-align: left; padding: 48px; justify-content: flex-start; }
+.quiz-complete-header { display: flex; justify-content: space-between; align-items: flex-end; margin-bottom: 40px; padding-bottom: 32px; border-bottom: 1px solid var(--border-color); }
+.quiz-complete-title { font-size: 28px; font-weight: 700; color: var(--text-main); letter-spacing: -0.02em; }
+.quiz-score-big { font-size: 40px; font-weight: 700; color: var(--accent); line-height: 1; }
+.quiz-score-denom { font-size: 20px; color: var(--text-muted); }
+.quiz-complete-body { display: flex; flex-direction: column; gap: 24px; }
+.quiz-complete-row { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; }
+.quiz-complete-section { display: flex; flex-direction: column; gap: 8px; }
+.quiz-label-sm { font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-muted); }
+.quiz-section-content { font-size: 15px; line-height: 1.6; color: var(--text-main); }
+.quiz-action-card { background: var(--bg-app); padding: 20px; border-radius: var(--radius-md); border: 1px solid var(--border-color); margin-top: 16px; }
+.quiz-next-action { font-size: 16px; font-weight: 600; color: var(--text-main); line-height: 1.5; }
 
-.quiz-badge {
-    display: inline-block;
-    padding: 2px 9px;
-    border-radius: 999px;
-    font-size: 11px;
-    font-weight: 700;
-    letter-spacing: 0.5px;
-}
-.quiz-badge-active {
-    background: rgba(34,211,238,0.1);
-    border: 1px solid rgba(34,211,238,0.35);
-    color: var(--sv-accent);
-}
-.quiz-badge-done {
-    background: rgba(52, 211, 153, 0.08);
-    border: 1px solid rgba(52, 211, 153, 0.3);
-    color: var(--sv-success);
-}
+.quiz-mic-strip { align-items: flex-start !important; max-width: 600px !important; margin: 0 auto !important; }
 
-/* Quiz center panel – question hero */
-.quiz-center-panel {
-    display: flex;
-    flex-direction: column;
-    gap: 10px;
+/* Responsive Adjustments */
+@media(max-width: 900px) {
+  .study-grid { grid-template-columns: 1fr !important; gap: 32px !important; }
+  .quiz-meta-shell { flex-direction: column !important; }
+  .quiz-meta-row { width: 100%; }
+  .quiz-meta-item { flex: 1; }
 }
-.quiz-idle-msg {
-    text-align: center;
-    color: var(--sv-text-sec);
-    font-size: 14px;
-    padding: 32px 20px;
-    line-height: 1.6;
-}
-.quiz-qnum {
-    font-size: 10px;
-    font-weight: 700;
-    letter-spacing: 2px;
-    color: var(--sv-accent);
-    text-transform: uppercase;
-}
-.quiz-question {
-    font-size: 22px;
-    font-weight: 600;
-    color: var(--sv-text);
-    line-height: 1.55;
-    background: rgba(34,211,238,0.04);
-    border: 1px solid rgba(34,211,238,0.14);
-    border-left: 3px solid var(--sv-accent);
-    border-radius: 0 9px 9px 0;
-    padding: 14px 16px;
-}
-.quiz-feedback {
-    font-size: 13.5px;
-    color: var(--sv-text);
-    background: var(--sv-elevated);
-    border: 1px solid var(--sv-border);
-    border-radius: 8px;
-    padding: 9px 13px;
-    line-height: 1.6;
-}
-
-/* Quiz COMPLETE card – compact, one viewport */
-.quiz-complete-panel { gap: 8px; }
-.quiz-complete-header {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    flex-wrap: wrap;
-    gap: 8px;
-    padding-bottom: 8px;
-    border-bottom: 1px solid var(--sv-border);
-    margin-bottom: 4px;
-}
-.quiz-complete-title {
-    font-size: 12px;
-    font-weight: 700;
-    color: var(--sv-success);
-    letter-spacing: 1.5px;
-    text-transform: uppercase;
-}
-.quiz-score-big {
-    font-size: 36px;
-    font-weight: 800;
-    color: var(--sv-text);
-    line-height: 1;
-}
-.quiz-score-sub {
-    font-size: 11px;
-    color: var(--sv-text-sec);
-    margin-top: 1px;
-}
-.quiz-complete-body {
-    display: flex;
-    flex-direction: column;
-    gap: 6px;
-}
-.quiz-complete-row {
-    display: flex;
-    gap: 6px;
-}
-.quiz-complete-section {
-    display: flex;
-    flex-direction: column;
-    gap: 3px;
-    font-size: 13px;
-    color: var(--sv-text);
-    background: var(--sv-elevated);
-    border: 1px solid var(--sv-border);
-    border-radius: 8px;
-    padding: 8px 11px;
-    flex: 1;
-}
-.quiz-complete-section-full {
-    display: flex;
-    flex-direction: column;
-    gap: 3px;
-    font-size: 13px;
-    color: var(--sv-text);
-    background: var(--sv-elevated);
-    border: 1px solid var(--sv-border);
-    border-radius: 8px;
-    padding: 8px 11px;
-}
-.quiz-label-sm {
-    font-size: 9.5px;
-    font-weight: 700;
-    letter-spacing: 1.5px;
-    color: var(--sv-accent);
-    margin-bottom: 2px;
-    text-transform: uppercase;
-}
-.quiz-area-good { color: var(--sv-success); font-weight: 500; }
-.quiz-area-weak { color: var(--sv-error); font-weight: 500; }
-.quiz-next-action {
-    color: var(--sv-accent2);
-    font-style: italic;
-    font-size: 13px;
-    line-height: 1.5;
-}
-
-/* Quiz score display in sidebar */
-.quiz-score-display {
-    font-size: 30px;
-    font-weight: 800;
-    color: var(--sv-text);
-    line-height: 1;
-    margin: 2px 0 3px 0;
-}
-.quiz-score-denom {
-    font-size: 15px;
-    font-weight: 400;
-    color: var(--sv-text-sec);
-}
-.quiz-diff-badge {
-    font-size: 12px;
-    font-weight: 700;
-    letter-spacing: 0.5px;
-}
-.quiz-progress-bar {
-    width: 100%;
-    height: 4px;
-    background: rgba(255,255,255,0.07);
-    border-radius: 999px;
-    overflow: hidden;
-    margin: 4px 0 2px 0;
-}
-.quiz-progress-fill {
-    height: 100%;
-    background: var(--sv-accent);
-    border-radius: 999px;
-    transition: width 0.4s ease;
-}
-.quiz-progress-label {
-    font-size: 11px;
-    color: var(--sv-text-sec);
-}
-.quiz-areas-container {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 4px;
-    margin-top: 2px;
-}
-.quiz-area-tag {
-    padding: 2px 7px;
-    border-radius: 999px;
-    font-size: 11px;
-    font-weight: 600;
-}
-.quiz-area-strong {
-    background: rgba(52, 211, 153, 0.08);
-    border: 1px solid rgba(52, 211, 153, 0.25);
-    color: var(--sv-success);
-}
-.quiz-area-weak-tag {
-    background: rgba(251, 113, 133, 0.08);
-    border: 1px solid rgba(251, 113, 133, 0.25);
-    color: var(--sv-error);
-}
-
-/* ========== GENERAL ASSISTANT STYLES (Phase 5) ========== */
-
-/* Conversation panel */
-.ga-conversation {
-    display: flex;
-    flex-direction: column;
-    gap: 10px;
-    padding: 4px 2px;
-}
-.ga-msg {
-    display: flex;
-    flex-direction: column;
-    gap: 3px;
-    max-width: 96%;
-}
-.ga-msg-user { align-self: flex-end; align-items: flex-end; }
-.ga-msg-assistant { align-self: flex-start; align-items: flex-start; }
-.ga-msg-label {
-    font-size: 10px;
-    font-weight: 700;
-    letter-spacing: 1.2px;
-    text-transform: uppercase;
-    color: var(--sv-text-sec);
-    margin-bottom: 2px;
-}
-.ga-msg-text {
-    font-size: 14px;
-    line-height: 1.65;
-    padding: 10px 14px;
-    border-radius: 10px;
-    color: var(--sv-text);
-    white-space: pre-wrap;
-}
-.ga-msg-user .ga-msg-text {
-    background: rgba(34,211,238,0.08);
-    border: 1px solid rgba(34,211,238,0.18);
-    border-radius: 10px 10px 2px 10px;
-}
-.ga-msg-assistant .ga-msg-text {
-    background: var(--sv-elevated);
-    border: 1px solid var(--sv-border);
-    border-radius: 2px 10px 10px 10px;
-}
-
-/* Empty state */
-.ga-empty-state {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    padding: 36px 20px 28px;
-    gap: 8px;
-    text-align: center;
-}
-.ga-empty-icon { font-size: 34px; line-height: 1; margin-bottom: 4px; }
-.ga-empty-title {
-    font-size: 22px;
-    font-weight: 700;
-    color: var(--sv-text);
-    letter-spacing: -0.3px;
-}
-.ga-empty-sub {
-    font-size: 13px;
-    color: var(--sv-text-sec);
-    max-width: 340px;
-    line-height: 1.55;
-    margin-bottom: 4px;
-}
-.ga-empty-hints {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 6px;
-    justify-content: center;
-    margin-top: 4px;
-}
-.ga-hint-chip {
-    font-size: 12px;
-    font-style: italic;
-    color: var(--sv-accent);
-    background: rgba(34,211,238,0.05);
-    border: 1px solid rgba(34,211,238,0.15);
-    border-radius: 999px;
-    padding: 4px 12px;
-}
-
-/* Text input row */
-.ga-text-input textarea {
-    background: var(--sv-elevated) !important;
-    border: 1px solid var(--sv-border) !important;
-    border-radius: 8px !important;
-    color: var(--sv-text) !important;
-    font-size: 14px !important;
-    resize: none !important;
-    min-height: 44px !important;
-    max-height: 88px !important;
-}
-.ga-send-btn {
-    background: rgba(34,211,238,0.12) !important;
-    border: 1px solid rgba(34,211,238,0.3) !important;
-    color: var(--sv-accent) !important;
-    font-weight: 700 !important;
-    font-size: 13px !important;
-    border-radius: 8px !important;
-    min-height: 44px !important;
-}
-.ga-send-btn:hover {
-    background: rgba(34,211,238,0.2) !important;
-}
-
-/* Voice side panel */
-.ga-voice-card {
-    border-color: rgba(34,211,238,0.18) !important;
-}
-.ga-context-label {
-    font-size: 10px;
-    font-weight: 700;
-    letter-spacing: 1.5px;
-    text-transform: uppercase;
-    color: var(--sv-accent);
-    margin-bottom: 4px;
-    margin-top: 12px;
-}
-.ga-context-topic {
-    font-size: 13px;
-    font-weight: 600;
-    color: var(--sv-text);
-    background: var(--sv-elevated);
-    border: 1px solid var(--sv-border);
-    border-left: 3px solid var(--sv-accent);
-    border-radius: 0 7px 7px 0;
-    padding: 6px 10px;
-    margin-top: 2px;
-}
-.ga-context-idle {
-    font-size: 12px;
-    font-style: italic;
-    color: var(--sv-text-sec);
-}
-.ga-quiz-ready-banner {
-    background: rgba(34,211,238,0.07);
-    border: 1px solid rgba(34,211,238,0.22);
-    border-radius: 8px;
-    padding: 8px 12px;
-    font-size: 12.5px;
-    color: var(--sv-accent);
-    margin-top: 8px;
-    line-height: 1.5;
+@media(max-width: 600px) {
+  .gradio-container > div:first-child { padding: 0 16px 40px !important; }
+  #sv-header { flex-direction: column; align-items: flex-start; height: auto; padding: 20px 0; gap: 12px; }
+  .sv-tagline { display: none; } /* Simplify header on mobile */
+  .sv-page-title { font-size: 28px !important; }
+  .ga-composer-row { flex-direction: column !important; align-items: stretch !important; }
+  .sv-send-btn { width: 100% !important; }
+  .quiz-center-panel { padding: 40px 24px; min-height: 280px; }
+  .quiz-question { font-size: 24px; }
+  .quiz-complete-header { flex-direction: column; align-items: flex-start; gap: 16px; }
+  .quiz-complete-row { grid-template-columns: 1fr; }
 }
 """
 
 
 # ==========================================================================
-# UI BUILD
+# UI BUILD  (Presentation layer upgrade)
 # ==========================================================================
 
 _blank_qs = _blank_quiz_state()
 
 with gr.Blocks(title="StudyVoice", css=CUSTOM_CSS) as demo:
 
-    # ------ Compact Header ------
-    with gr.Row(elem_id="app_header"):
-        gr.HTML(
-            '<div class="header-content">'
-            '<div class="header-left">'
-            '<div class="logo-icon">🎙️</div>'
-            "<div>"
-            '<div class="app-title">StudyVoice</div>'
-            '<div class="app-subtitle-small">Voice-first AI learning copilot</div>'
-            "</div>"
-            "</div>"
-            '<div class="status-badge">'
-            '<span class="status-dot"></span> AI Online'
-            "</div>"
-            "</div>"
-        )
+    # ── Header ──────────────────────────────────────────────────────────────
+    gr.HTML(
+        '<div id="sv-header">'
+        '<div class="sv-logo-row"><span class="sv-wordmark">StudyVoice</span>'
+        '<span class="sv-tagline">Voice-first AI learning copilot</span></div>'
+        '<span class="sv-online-dot">AI Online</span>'
+        '</div>',
+        elem_id="sv_header_html",
+    )
 
-    # ------ Top-level tabs ------
+    # ── Mode selector tabs ───────────────────────────────────────────────────
     with gr.Tabs(elem_classes=["tab-nav"]):
 
-        # ==================== TAB 1: GENERAL ASSISTANT (Phase 5) ====================
-        with gr.Tab("💬 General Assistant"):
+        # ══════════════════════════════════════════════════════════════════
+        # TAB 1 — GENERAL ASSISTANT
+        # ══════════════════════════════════════════════════════════════════
+        with gr.Tab("General Assistant"):
 
             ga_history_state = gr.State([])
 
-            with gr.Row():
-                # LEFT 70%: conversation + text input
-                with gr.Column(scale=70, elem_classes=["panel-card"]):
-                    gr.HTML('<div class="card-label">Conversation</div>')
-                    ga_conv_html = gr.HTML(
-                        value=_render_ga_conversation([]),
-                        elem_id="ga_conv",
-                    )
-                    with gr.Row(equal_height=True):
-                        ga_text_in = gr.Textbox(
-                            label="",
-                            placeholder="Ask anything — or say 'Quiz me on that' after learning something.",
-                            lines=1,
-                            elem_classes=["ga-text-input"],
-                            show_label=False,
-                            scale=5,
-                        )
-                        ga_send_btn = gr.Button(
-                            "Send",
-                            elem_classes=["ga-send-btn"],
-                            scale=1,
-                        )
-                    ga_audio_out = gr.Audio(
-                        label="🔊 StudyVoice",
-                        autoplay=True,
-                        interactive=False,
-                        elem_classes=["audio-output"],
-                    )
-
-                # RIGHT 30%: voice + context indicator
-                with gr.Column(scale=30, elem_classes=["panel-card", "ga-voice-card"]):
-                    gr.HTML('<div class="card-label">Voice &amp; Context</div>')
-                    ga_voice_in = gr.Audio(
-                        sources=["microphone"],
-                        type="filepath",
-                        format="wav",
-                        label="",
-                        elem_id="ga_mic_input",
-                    )
-                    gr.HTML(
-                        '<div class="mic-instruction">'
-                        "Record your question or say 'Quiz me on that'.<br>"
-                        "Auto-processes when you stop."
-                        "</div>"
-                    )
-                    ga_status = gr.Textbox(
-                        label="Status",
-                        value="",
-                        interactive=False,
-                        lines=1,
-                        elem_classes=["status-textbox"],
-                    )
-                    ga_context_display = gr.HTML(
-                        value=(
-                            '<div class="ga-context-label">CURRENT TOPIC</div>'
-                            '<div class="ga-context-idle">No topic yet — start a conversation.</div>'
-                        ),
-                    )
-
-            # Shared quiz state with Voice Quiz tab (same gr.State object, wired below)
-            # We declare it here as a placeholder; the actual shared reference is set
-            # after the quiz tab wires its own quiz_state. We use a separate State here
-            # and pass it through handler outputs to keep Quiz tab in sync.
-            ga_quiz_state_ref = gr.State(_blank_quiz_state())
-            ga_quiz_left_ref = gr.HTML(visible=False)
+            # Hidden state refs for quiz cross-tab sync
+            ga_quiz_state_ref  = gr.State(_blank_quiz_state())
+            ga_quiz_left_ref   = gr.HTML(visible=False)
             ga_quiz_center_ref = gr.HTML(visible=False)
-            ga_quiz_right_ref = gr.HTML(visible=False)
+            ga_quiz_right_ref  = gr.HTML(visible=False)
 
-            # GA text submit outputs:
-            # ga_history_state, ga_conv_html, ga_status, ga_audio_out, ga_text_in,
-            # ga_quiz_state_ref, ga_quiz_left_ref, ga_quiz_center_ref, ga_quiz_right_ref
+            with gr.Column(elem_classes=["sv-workspace"]):
+                gr.HTML(
+                    '<div class="sv-page-head fade-in">'
+                    '<div class="sv-page-title">Workspace</div>'
+                    '<div class="sv-page-sub">Ask questions, explore concepts, and generate quizzes dynamically.</div>'
+                    '</div>'
+                )
+
+                # Conversation display
+                ga_conv_html = gr.HTML(
+                    value=_render_ga_conversation([]),
+                    elem_id="ga_conv",
+                )
+
+                # Text input row
+                with gr.Row(equal_height=True, elem_classes=["ga-composer-row fade-in"]):
+                    ga_text_in = gr.Textbox(
+                        label="",
+                        placeholder="Message StudyVoice...",
+                        lines=1,
+                        show_label=False,
+                        scale=6,
+                        elem_classes=["ga-text-input"],
+                    )
+                    ga_send_btn = gr.Button(
+                        "Send",
+                        scale=1,
+                        elem_classes=["sv-send-btn"],
+                    )
+
+                # Status (hidden until error)
+                ga_status = gr.Textbox(
+                    label="",
+                    value="",
+                    interactive=False,
+                    lines=1,
+                    show_label=False,
+                    elem_classes=["sv-status-box"],
+                )
+
+                # Audio output (compact autoplay, rendered but visually hidden)
+                ga_audio_out = gr.Audio(
+                    label="",
+                    autoplay=True,
+                    interactive=False,
+                    show_label=False,
+                    visible=True,
+                    elem_classes=["sv-audio-out"],
+                )
+
+                # Thin divider before voice section
+                gr.HTML('<div class="sv-divider fade-in">Voice Input</div>')
+
+                # Voice input row
+                with gr.Row(equal_height=False, elem_classes=["ga-bottom-row fade-in"]):
+                    with gr.Column(scale=1, min_width=260):
+                        gr.HTML('<div class="sv-mic-hint">Record your question or request.</div>')
+                        ga_voice_in = gr.Audio(
+                            sources=["microphone"],
+                            type="filepath",
+                            format="wav",
+                            label="",
+                            elem_id="ga_mic_input",
+                            show_label=False,
+                        )
+                    with gr.Column(scale=1, min_width=260):
+                        ga_context_display = gr.HTML(
+                            value=(
+                                '<div class="ga-context-box"><div class="ga-context-label">Current Context</div>'
+                                '<div class="ga-context-idle">No topic active.</div></div>'
+                            ),
+                        )
+
+            # ── Event wiring (GA) ─────────────────────────────────────────
             _ga_outputs = [
                 ga_history_state,
                 ga_conv_html,
                 ga_status,
                 ga_audio_out,
                 ga_text_in,
+                ga_quiz_state_ref,
+                ga_quiz_left_ref,
+                ga_quiz_center_ref,
+                ga_quiz_right_ref,
+            ]
+            _ga_voice_outputs = [
+                ga_history_state,
+                ga_conv_html,
+                ga_status,
+                ga_audio_out,
+                ga_voice_in,
                 ga_quiz_state_ref,
                 ga_quiz_left_ref,
                 ga_quiz_center_ref,
@@ -2055,85 +1594,75 @@ with gr.Blocks(title="StudyVoice", css=CUSTOM_CSS) as demo:
                 inputs=[ga_text_in, ga_history_state, ga_conv_html, ga_quiz_state_ref],
                 outputs=_ga_outputs,
             )
-
-            # GA voice outputs same list but ga_text_in replaced with ga_voice_in clear
-            _ga_voice_outputs = [
-                ga_history_state,
-                ga_conv_html,
-                ga_status,
-                ga_audio_out,
-                ga_voice_in,
-                ga_quiz_state_ref,
-                ga_quiz_left_ref,
-                ga_quiz_center_ref,
-                ga_quiz_right_ref,
-            ]
-
             ga_voice_in.stop_recording(
                 fn=handle_ga_voice,
                 inputs=[ga_voice_in, ga_history_state, ga_conv_html, ga_quiz_state_ref],
                 outputs=_ga_voice_outputs,
             )
 
-        # ==================== TAB 2: STUDY AGENT (Phase 3 – preserved) ====================
-        with gr.Tab("📅 Study Agent"):
+        # ══════════════════════════════════════════════════════════════════
+        # TAB 2 — STUDY AGENT
+        # ══════════════════════════════════════════════════════════════════
+        with gr.Tab("Study Agent"):
 
             history_state = gr.State([])
-            plan_state = gr.State(None)
+            plan_state    = gr.State(None)
 
-            # TOP CONTROL BAR – compact voice strip
-            with gr.Row(elem_id="sa_top_bar"):
-                with gr.Column(elem_classes=["panel-card"]):
-                    gr.HTML('<div class="card-label">Voice Copilot</div>')
-                    with gr.Row(equal_height=True):
-                        with gr.Column(scale=3, min_width=200):
+            with gr.Column(elem_classes=["sv-workspace"]):
+                gr.HTML(
+                    '<div class="sv-page-head fade-in">'
+                    '<div class="sv-page-title">Study Planner</div>'
+                    '<div class="sv-page-sub">Tell StudyVoice your subjects and constraints to map out your optimal schedule.</div>'
+                    '</div>'
+                )
+
+                with gr.Row(elem_classes=["study-grid fade-in"]):
+                    with gr.Column(elem_classes=["study-left"], min_width=320):
+                        with gr.Column(elem_classes=["study-panel"]):
+                            gr.HTML('<div class="sv-mic-hint">Record your study requirements</div>')
                             audio_in = gr.Audio(
                                 sources=["microphone"],
                                 type="filepath",
                                 format="wav",
                                 label="",
-                                elem_id="mic_input",
+                                elem_id="sa_mic_input",
+                                show_label=False,
                             )
-                            gr.HTML(
-                                '<div class="mic-instruction">'
-                                "Record your request — auto-processes when you stop."
-                                "</div>"
-                            )
-                        with gr.Column(scale=5, min_width=200):
                             error_box = gr.Textbox(
-                                label="Status",
+                                label="",
                                 value="",
                                 interactive=False,
                                 lines=1,
-                                elem_classes=["status-textbox"],
+                                show_label=False,
+                                elem_classes=["sv-status-box"],
                             )
                             audio_out = gr.Audio(
-                                label="🔊 StudyVoice",
+                                label="",
                                 autoplay=True,
                                 interactive=False,
-                                elem_classes=["audio-output"],
+                                show_label=False,
+                                visible=True,
+                                elem_classes=["sv-audio-out"],
                             )
+                        transcript_box = gr.Textbox(
+                            label="Conversation History",
+                            value="",
+                            interactive=False,
+                            lines=8,
+                            show_label=True,
+                            elem_id="transcript_box",
+                            elem_classes=["sa-transcript-box"],
+                            placeholder="Interactions will appear here...",
+                        )
 
-            # MAIN CONTENT – Conversation (42%) + Plan (58%)
-            with gr.Row():
-                with gr.Column(scale=42, elem_classes=["panel-card", "conversation-card"]):
-                    gr.HTML('<div class="card-label">Conversation</div>')
-                    transcript_box = gr.Textbox(
-                        label="",
-                        value="",
-                        interactive=False,
-                        lines=16,
-                        elem_id="transcript_box",
-                        elem_classes=["transcript-textbox"],
-                    )
+                    with gr.Column(elem_classes=["study-right"], min_width=420):
+                        gr.HTML('<div class="sv-plan-label">Generated Schedule</div>')
+                        plan_panel = gr.Markdown(
+                            value=PLAN_PLACEHOLDER,
+                            elem_id="sv_plan_panel",
+                        )
 
-                with gr.Column(scale=58, elem_classes=["panel-card", "plan-card"]):
-                    gr.HTML('<div class="card-label">Today\'s Study Plan</div>')
-                    plan_panel = gr.Markdown(
-                        value=PLAN_PLACEHOLDER,
-                        elem_id="plan_panel",
-                    )
-
+            # ── Turn outputs (exact order preserved) ──────────────────────
             turn_outputs = [
                 audio_out,
                 audio_in,
@@ -2150,54 +1679,65 @@ with gr.Blocks(title="StudyVoice", css=CUSTOM_CSS) as demo:
                 outputs=turn_outputs,
             )
 
-        # ==================== TAB 3: VOICE QUIZ (Phase 4 – preserved) ====================
-        with gr.Tab("🧠 Voice Quiz"):
+        # ══════════════════════════════════════════════════════════════════
+        # TAB 3 — VOICE QUIZ
+        # ══════════════════════════════════════════════════════════════════
+        with gr.Tab("Voice Quiz"):
 
             quiz_state = gr.State(_blank_quiz_state())
 
-            with gr.Row():
-                # LEFT MAIN 68%: question hero + audio + feedback
-                with gr.Column(scale=68, elem_classes=["panel-card"]):
-                    gr.HTML('<div class="card-label">Question</div>')
-                    quiz_audio_out = gr.Audio(
-                        label="🔊 StudyVoice",
+            with gr.Column(elem_classes=["sv-workspace"]):
+                gr.HTML(
+                    '<div class="sv-page-head fade-in" style="margin-bottom: 24px;">'
+                    '<div class="sv-page-title">Evaluation</div>'
+                    '</div>'
+                )
+
+                # Hidden audio output — callback-connected and autoplay-enabled
+                quiz_audio_out = gr.Audio(
+                        label="",
                         autoplay=True,
                         interactive=False,
-                        elem_classes=["audio-output"],
-                    )
-                    quiz_center = gr.HTML(
-                        value=render_quiz_center(_blank_qs),
-                    )
-
-                # RIGHT SIDEBAR 32%: mic + stats
-                with gr.Column(scale=32, elem_classes=["panel-card", "quiz-card"]):
-                    gr.HTML('<div class="card-label">Answer &amp; Progress</div>')
-                    quiz_audio_in = gr.Audio(
-                        sources=["microphone"],
-                        type="filepath",
-                        format="wav",
-                        label="",
-                        elem_id="quiz_mic_input",
-                    )
-                    gr.HTML(
-                        '<div class="mic-instruction">'
-                        "Speak your request or answer — auto-processes when you stop."
-                        "</div>"
-                    )
-                    quiz_status = gr.Textbox(
-                        label="Status",
-                        value="",
-                        interactive=False,
-                        lines=1,
-                        elem_classes=["status-textbox"],
-                    )
-                    quiz_left = gr.HTML(
-                        value=render_quiz_left(_blank_qs),
-                    )
-                    quiz_right = gr.HTML(
-                        value=render_quiz_right(_blank_qs),
+                        show_label=False,
+                        visible=True,
+                        elem_classes=["sv-audio-out"],
                     )
 
+                with gr.Row(equal_height=False, elem_classes=["quiz-meta-shell"]):
+                    with gr.Column(min_width=200):
+                        quiz_left = gr.HTML(value=render_quiz_left(_blank_qs))
+                    with gr.Column(min_width=200):
+                        quiz_right = gr.HTML(value=render_quiz_right(_blank_qs))
+
+                quiz_center = gr.HTML(
+                    value=render_quiz_center(_blank_qs),
+                )
+
+                with gr.Row(elem_classes=["quiz-mic-strip fade-in"], elem_id="quiz_mic_strip_row"):
+                    with gr.Column(min_width=180):
+                        gr.HTML(
+                            '<div class="sv-mic-hint" style="text-align:left;margin-bottom:8px;">'
+                            'Respond to the question</div>'
+                        )
+                        quiz_audio_in = gr.Audio(
+                            sources=["microphone"],
+                            type="filepath",
+                            format="wav",
+                            label="",
+                            elem_id="quiz_mic_input",
+                            show_label=False,
+                        )
+                    with gr.Column(min_width=120):
+                        quiz_status = gr.Textbox(
+                            label="",
+                            value="",
+                            interactive=False,
+                            lines=1,
+                            show_label=False,
+                            elem_classes=["sv-status-box"],
+                        )
+
+            # ── Quiz outputs (exact order preserved) ──────────────────────
             quiz_outputs = [
                 quiz_state,
                 quiz_left,
@@ -2214,8 +1754,7 @@ with gr.Blocks(title="StudyVoice", css=CUSTOM_CSS) as demo:
                 outputs=quiz_outputs,
             )
 
-            # Cross-tab sync: when GA launches a quiz, propagate state + rendered HTML
-            # into the Voice Quiz tab components so the tab is ready immediately.
+            # ── Cross-tab sync: GA → Quiz ─────────────────────────────────
             def _sync_quiz_from_ga(ga_qs, ga_ql, ga_qc, ga_qr):
                 return ga_qs, ga_ql, ga_qc, ga_qr
 
@@ -2225,14 +1764,13 @@ with gr.Blocks(title="StudyVoice", css=CUSTOM_CSS) as demo:
                 outputs=[quiz_state, quiz_left, quiz_center, quiz_right],
             )
 
+            # ── Context display sync in GA sidebar ────────────────────────
             def _render_ga_context(ga_history):
-                """Show the last non-voice user message as current topic."""
                 if not ga_history:
                     return (
-                        '<div class="ga-context-label">CURRENT TOPIC</div>'
-                        '<div class="ga-context-idle">No topic yet — start a conversation.</div>'
+                        '<div class="ga-context-box"><div class="ga-context-label">Current Context</div>'
+                        '<div class="ga-context-idle">No topic active.</div></div>'
                     )
-                # Find last user text that isn't a voice placeholder
                 last_topic = None
                 for turn in reversed(ga_history):
                     if turn.get("role") == "user" and turn.get("text", "") != "(voice message)":
@@ -2240,12 +1778,14 @@ with gr.Blocks(title="StudyVoice", css=CUSTOM_CSS) as demo:
                         break
                 if not last_topic:
                     last_topic = "(voice)"
-                escaped = _plan_escape(last_topic[:120] + ("…" if len(last_topic) > 120 else ""))
+                escaped = _plan_escape(last_topic[:120] + ("..." if len(last_topic) > 120 else ""))
                 return (
-                    '<div class="ga-context-label">LAST MESSAGE</div>'
+                    '<div class="ga-context-box">'
+                    '<div class="ga-context-label">Last Topic Identified</div>'
                     f'<div class="ga-context-topic">{escaped}</div>'
-                    '<div class="ga-context-label" style="margin-top:10px">QUIZ ME ON THAT</div>'
-                    '<div class="ga-context-idle">Say or type "Quiz me on that" to start a quiz on the current topic.</div>'
+                    '<div class="ga-context-label" style="margin-top:16px">Quick Action</div>'
+                    '<div class="ga-context-idle" style="font-style: normal; color: var(--text-main); font-weight: 500;">Say <span style="background: var(--bg-app); padding: 2px 6px; border-radius: 4px; border: 1px solid var(--border-color); font-size: 12px;">"Quiz me on that"</span> to test this.</div>'
+                    '</div>'
                 )
 
             ga_history_state.change(
