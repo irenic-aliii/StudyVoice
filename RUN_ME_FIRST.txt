@@ -1,0 +1,31 @@
+STUDYVOICE - RUN ME FIRST (Windows)
+=====================================
+
+1. Open PowerShell in this extracted folder.
+
+2. Install dependencies:
+   python -m pip install -r requirements.txt
+
+3. Set your API key for THIS PowerShell session:
+   $env:GEMINI_API_KEY="PASTE_KEY_HERE"
+
+4. Start the app:
+   python app.py
+
+5. Open the local Gradio URL shown in the terminal
+   (usually http://127.0.0.1:7860).
+
+6. Test the first voice message:
+   Click the microphone, say something, click it again to stop,
+   then click "Ask StudyVoice" (or it will run automatically when
+   the recording stops).
+
+7. Test memory with a second voice message, e.g.:
+   Turn 1: "My name is Ali and I have a Python exam on Friday."
+   Turn 2: "What exam do I have and when?"
+   StudyVoice should correctly answer with the Python exam on Friday.
+
+IMPORTANT:
+The GEMINI_API_KEY environment variable set in step 3 only lives for
+the current PowerShell window. If you close PowerShell and open a new
+one, you must run step 3 again before step 4 will work.
