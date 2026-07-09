@@ -1,145 +1,316 @@
-# StudyVoice
+# 🎙️ StudyVoice
 
-An AI voice copilot for students: record a spoken question, StudyVoice listens,
-remembers conversation context, answers concisely, and speaks the answer back.
+### A voice-first AI learning copilot that turns natural conversation into action.
 
-## Architecture
+Most AI voice assistants follow a simple loop:
 
+> **Voice → LLM → Voice**
+
+StudyVoice goes further:
+
+> **Voice / Text → Context → Intent → Structured Action → Adaptive Workflow**
+
+Instead of only answering questions, StudyVoice can explain concepts, build and modify study plans, launch contextual quizzes, adapt difficulty based on performance, diagnose weak areas, and recommend what to do next.
+
+## The Core Learning Loop
+
+**ASK → PLAN → PRACTICE → DIAGNOSE → ADAPT**
+
+StudyVoice connects the full learning journey through natural conversation.
+
+---
+
+## ✨ What StudyVoice Can Do
+
+### 💬 General Assistant
+
+A contextual AI learning assistant that supports both text and voice.
+
+- Ask questions by typing or speaking
+- Receive concise text and spoken responses
+- Maintain multi-turn conversation memory
+- Understand contextual follow-ups
+- Route conversations into learning workflows
+
+**Example:**
+
+> “Explain polymorphism simply.”
+
+Then:
+
+> “Quiz me on that.”
+
+StudyVoice remembers the topic and launches an adaptive voice quiz on polymorphism.
+
+---
+
+### 📅 Study Agent
+
+Turns natural language into structured, editable study plans.
+
+**Example:**
+
+> “I have a Python exam tomorrow. Make me a 5-hour study plan for OOP, strings and arrays.”
+
+StudyVoice:
+
+- Understands the request directly from voice
+- Detects the user's intent
+- Generates a structured visual study plan
+- Speaks a short summary
+- Remembers the current plan
+
+The user can then say:
+
+> “Give OOP one more hour and reduce strings.”
+
+StudyVoice updates the existing plan instead of creating an unrelated new one.
+
+---
+
+### 🧠 Adaptive Voice Quiz
+
+A stateful quiz system designed to practice, evaluate, and adapt.
+
+**Example:**
+
+> “Quiz me on Python OOP for 3 questions.”
+
+StudyVoice:
+
+- Generates one question at a time
+- Speaks every question aloud
+- Accepts spoken answers
+- Evaluates each response
+- Awards **1 / 0.5 / 0 points**
+- Gives concise feedback
+- Adapts difficulty
+- Tracks strong and weak areas
+- Generates a final diagnosis
+- Recommends the next learning action
+
+---
+
+## 🚀 Hero Demo
+
+The key cross-mode workflow:
+
+1. Ask: **“Explain polymorphism simply.”**
+2. Follow up: **“Quiz me on that.”**
+3. StudyVoice remembers the topic.
+4. It automatically launches the Voice Quiz workflow.
+5. The learner answers by voice.
+6. Difficulty adapts based on performance.
+7. StudyVoice diagnoses weak concepts and recommends the next action.
+
+This is the core difference between a voice chatbot and an AI learning copilot.
+
+---
+
+## 🏗️ Architecture
+
+```text
+                 ┌───────────────────┐
+                 │   Voice / Text    │
+                 └─────────┬─────────┘
+                           ↓
+                 ┌───────────────────┐
+                 │ Context + Memory  │
+                 └─────────┬─────────┘
+                           ↓
+                 ┌───────────────────┐
+                 │  Gemini Reasoning │
+                 │ + Intent Detection│
+                 └─────────┬─────────┘
+                           ↓
+                 ┌───────────────────┐
+                 │ Structured Output │
+                 │     (Pydantic)    │
+                 └─────────┬─────────┘
+                           ↓
+          ┌────────────────┼────────────────┐
+          ↓                ↓                ↓
+  General Assistant    Study Agent      Voice Quiz
+          │                │                │
+          ↓                ↓                ↓
+    Contextual Q&A    Create / Update   Evaluate / Adapt
+          └────────────────┼────────────────┘
+                           ↓
+                 ┌───────────────────┐
+                 │   Text + Voice    │
+                 │      Response     │
+                 └───────────────────┘
 ```
-Mic recording (Gradio, forced WAV)
-        |
-        v
-Read raw audio bytes
-        |
-        v
-Send audio bytes directly to Gemini 2.5 Flash
-(no separate speech-to-text step; audio is appended
- to a running multi-turn conversation history)
-        |
-        v
-Gemini returns a concise text answer
-        |
-        v
-gTTS converts the answer to a unique MP3
-        |
-        v
-Text shown in transcript box + audio autoplays
+
+---
+
+## 🛠️ Tech Stack
+
+- **Python 3.13**
+- **Gradio 5.49.1** — interactive voice and text interface
+- **Gemini API** — native audio understanding and reasoning
+- **google-genai SDK** — official Gemini SDK
+- **Pydantic** — validated structured outputs
+- **gTTS** — spoken responses
+
+**Current model:** `gemini-3.1-flash-lite-preview`
+
+---
+
+## 🔑 Technical Highlights
+
+### Native Audio Understanding
+
+Microphone audio is sent directly to Gemini.
+
+There is no separate speech-to-text service in the core voice pipeline.
+
+```text
+Microphone
+    ↓
+Raw Audio
+    ↓
+Gemini Native Audio Understanding
+    ↓
+Reasoning + Structured Action
 ```
 
-## Features
+### Structured Intent Detection
 
-- Microphone recording directly in the browser, no file uploads needed.
-- Gemini 2.5 Flash understands the audio natively - no separate STT service.
-- Conversation memory: later questions can reference facts from earlier turns.
-- Every response is spoken back with a unique, non-colliding audio file.
-- Clear, specific error messages in the UI; full tracebacks in the terminal.
+StudyVoice does not depend on fragile keyword matching.
 
-## Tech stack
+Gemini returns validated structured outputs that determine whether the user wants to:
 
-- Python
-- Gradio (simple transcript box UI, chosen for compatibility/reliability
-  over a fancier Chatbot component)
-- `google-genai` (current official SDK - not the deprecated `google-generativeai`)
-- Gemini 2.5 Flash
-- gTTS
+- Continue a general conversation
+- Create a study plan
+- Update an existing plan
+- Start or continue a quiz
+- Clarify an incomplete request
 
-## Setup
+### Stateful Learning Workflows
 
-See `RUN_ME_FIRST.txt` for exact Windows PowerShell commands.
+StudyVoice maintains state across turns, allowing users to:
 
-Short version:
+- Reference previous conversation topics
+- Modify existing study plans
+- Continue multi-question quizzes
+- Carry context across learning modes
 
+### Defensive Structured Output Parsing
+
+To prevent malformed or truncated model output from reaching the interface:
+
+1. `response.parsed` is preferred
+2. Validated Pydantic objects are supported
+3. Defensive dictionary parsing is supported
+4. Text parsing is used only as a fallback
+5. Failed parsing is handled safely without corrupting state
+6. Raw JSON is never exposed in the UI
+
+---
+
+## 🎨 Interface
+
+StudyVoice uses a **Midnight + Electric Cyan** visual system designed around three focused modes:
+
+1. **General Assistant**
+2. **Study Agent**
+3. **Voice Quiz**
+
+Voice interactions use a simple flow:
+
+> **Record → Stop → Auto-process**
+
+No duplicate submit step is required.
+
+---
+
+## ⚙️ Setup
+
+### 1. Clone the repository
+
+```bash
+git clone https://github.com/irenic-aliii/StudyVoice.git
+cd StudyVoice
 ```
+
+### 2. Install dependencies
+
+```bash
 python -m pip install -r requirements.txt
-$env:GEMINI_API_KEY="your-key-here"
+```
+
+### 3. Set your Gemini API key
+
+**Windows PowerShell:**
+
+```powershell
+$env:GEMINI_API_KEY="your-api-key-here"
+```
+
+### 4. Run StudyVoice
+
+```bash
 python app.py
 ```
 
-## Demo flow
+For Windows-specific instructions, see `RUN_ME_FIRST.txt`.
 
-1. Record: "My name is Ali and I have a Python exam on Friday."
-2. StudyVoice replies out loud, e.g. acknowledging the exam.
-3. Record: "What exam do I have and when?"
-4. StudyVoice correctly answers "Python exam on Friday" - proving the
-   conversation memory works across turns.
+---
 
-## Phase 2: voice-to-study-plan
+## 🔒 Security
 
-StudyVoice can also detect when you're asking for a study plan and show it
-in a dedicated "TODAY'S STUDY PLAN" panel, instead of just replying in
-speech/transcript.
+API keys are never committed to the repository.
 
-**How intent is detected:** rather than fragile keyword matching (e.g.
-`if "plan" in text`), every Gemini call now uses structured JSON output
-(`response_mime_type="application/json"` + a pydantic `response_schema`).
-Gemini itself classifies each turn as one of:
+The application reads the Gemini API key from the environment:
 
-- `chat` - a normal question/answer, plan panel untouched
-- `create_plan` - a new study plan, shown in the panel
-- `update_plan` - a change to the existing plan, replacing it in the panel
+```text
+GEMINI_API_KEY
+```
 
-**How memory carries the plan across turns:** the model's full structured
-JSON reply (not just the spoken summary) is stored as its turn in the same
-conversation history used for regular memory. So when you ask to modify the
-plan, Gemini already has the exact previous plan JSON in context and returns
-a complete revised plan, which replaces the one in the panel.
+The `.gitignore` excludes local secrets, generated audio files, Python cache files, and Gradio runtime files.
 
-**Demo flow:**
+---
 
-1. Record: "I have a Python exam tomorrow. Make me a 5 hour study plan
-   focused on loops, functions, and OOP."
-   -> StudyVoice speaks a short summary, and the full plan appears in the
-   "TODAY'S STUDY PLAN" panel.
-2. Record: "Make OOP two hours and reduce loops."
-   -> The existing plan panel updates in place with the new timing -
-   it does not create a second, unrelated plan.
-3. Record: "What's a good way to remember Python scope rules?"
-   -> Normal chat answer; the plan panel stays exactly as it was.
+## 🎯 Why StudyVoice?
 
-## Phase 3: UI/UX redesign
+Students usually use separate tools to:
 
-This phase only touched presentation. No backend architecture, Gemini logic,
-structured output schema, memory handling, or dependency versions changed.
+- Understand a concept
+- Build a study plan
+- Practice questions
+- Identify weak areas
+- Decide what to study next
 
-**What changed:**
-- New dark, premium visual theme (near-black/navy background, violet + blue
-  accents) applied entirely through `CUSTOM_CSS` in `app.py`.
-- Header bar with the StudyVoice name, an "AI Online" status badge, and the
-  tagline "Speak your goal. Get a plan. Refine it by voice."
-- Three-card layout: Voice Copilot (left), Conversation (center), Today's
-  Study Plan (right, styled as the visually dominant "hero" panel).
-- `render_plan_markdown()` now builds a styled HTML timeline (time chip +
-  topic + goal per block, breaks visually differentiated) instead of plain
-  markdown headers. It is still fed the exact same `StudyPlan` data and is
-  called from the exact same place in `handle_turn` - only the string it
-  returns looks different.
-- Removed the separate "Ask StudyVoice" button. There is now exactly one way
-  to submit: record, stop, and StudyVoice responds automatically
-  (`audio_in.stop_recording(...)`), which was already wired up before and is
-  unchanged here.
-- The conversation transcript keeps the original `gr.Textbox` component and
-  the original text it receives from `handle_turn` untouched - it is only
-  restyled with CSS, per the "don't break transcript logic" requirement.
+StudyVoice connects these steps through one continuous voice-first experience.
 
-**What did NOT change:** `StudyBlock`/`StudyPlan`/`AssistantAction` schemas,
-`SYSTEM_INSTRUCTION`, `MODEL_NAME`, `get_client()`, `extract_assistant_action()`,
-`handle_turn()`, the Gemini call/config, gTTS usage, and `requirements.txt`
-are all byte-for-byte identical to Phase 2 (verified with an AST diff).
+> **Speak naturally. Learn adaptively. Take the next action.**
 
-## Fix note: structured response parsing
+---
 
-Earlier builds parsed only `response.text` with `json.loads`. When a full
-study plan pushed the JSON near the output token limit, generation could be
-cut short mid-string, `json.loads` would fail, and the code fell back to
-showing the raw (partial) JSON in the transcript.
+## 🔮 Future Direction
 
-Fixed by:
-- Preferring `response.parsed` (the `google-genai` SDK's own validated
-  result) over manual text parsing, with a dict and then a text-based
-  fallback behind it.
-- Raising `MAX_OUTPUT_TOKENS` so a full study plan's JSON has enough room
-  to finish generating instead of being truncated.
-- If structured parsing genuinely fails anyway, the turn is dropped safely:
-  the Status box shows a short message, the terminal gets the technical
-  detail, and neither the transcript nor conversation memory is touched by
-  the broken output.
+StudyVoice can evolve into a persistent learning system with:
+
+- Long-term learner profiles
+- Progress tracking across sessions
+- Subject-specific learning paths
+- Personalized revision scheduling
+- Deeper performance analytics
+
+The current prototype focuses on proving the core interaction model:
+
+**Conversation should lead to action, and action should lead to adaptation.**
+
+---
+
+## 👨‍💻 Built By
+
+**Ali**  
+Built for an AI Voice Assistant Bootcamp.
+
+---
+
+## 📄 License
+
+This project is currently provided for demonstration and educational purposes.

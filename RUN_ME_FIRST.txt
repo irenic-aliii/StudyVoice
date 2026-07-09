@@ -1,31 +1,170 @@
-STUDYVOICE - RUN ME FIRST (Windows)
-=====================================
+STUDYVOICE — RUN ME FIRST (Windows)
+===================================
 
-1. Open PowerShell in this extracted folder.
+StudyVoice is a voice-first AI learning copilot with three modes:
 
-2. Install dependencies:
-   python -m pip install -r requirements.txt
+1. General Assistant
+2. Study Agent
+3. Voice Quiz
 
-3. Set your API key for THIS PowerShell session:
-   $env:GEMINI_API_KEY="PASTE_KEY_HERE"
 
-4. Start the app:
-   python app.py
+REQUIREMENTS
+============
 
-5. Open the local Gradio URL shown in the terminal
-   (usually http://127.0.0.1:7860).
+- Python 3.13 recommended
+- A modern web browser
+- A microphone for voice features
+- A Gemini API key
 
-6. Test the first voice message:
-   Click the microphone, say something, click it again to stop,
-   then click "Ask StudyVoice" (or it will run automatically when
-   the recording stops).
 
-7. Test memory with a second voice message, e.g.:
-   Turn 1: "My name is Ali and I have a Python exam on Friday."
-   Turn 2: "What exam do I have and when?"
-   StudyVoice should correctly answer with the Python exam on Friday.
+STEP 1 — GET A GEMINI API KEY
+=============================
 
-IMPORTANT:
-The GEMINI_API_KEY environment variable set in step 3 only lives for
-the current PowerShell window. If you close PowerShell and open a new
-one, you must run step 3 again before step 4 will work.
+Create a Gemini API key from Google AI Studio:
+
+https://aistudio.google.com/app/apikey
+
+Keep the key private. Do not add it to the project files.
+
+
+STEP 2 — OPEN POWERSHELL
+========================
+
+Open PowerShell inside the StudyVoice project folder.
+
+If you cloned the repository, first enter the folder:
+
+cd StudyVoice
+
+
+STEP 3 — INSTALL DEPENDENCIES
+=============================
+
+Run:
+
+python -m pip install -r requirements.txt
+
+
+STEP 4 — SET YOUR API KEY
+=========================
+
+In the same PowerShell window, run:
+
+$env:GEMINI_API_KEY="PASTE_YOUR_API_KEY_HERE"
+
+
+STEP 5 — START STUDYVOICE
+=========================
+
+Run:
+
+python app.py
+
+
+STEP 6 — OPEN THE APP
+=====================
+
+Open the local Gradio URL shown in the terminal.
+
+Usually:
+
+http://127.0.0.1:7860
+
+
+HOW TO TEST STUDYVOICE
+======================
+
+GENERAL ASSISTANT
+
+Type or say:
+
+"Explain polymorphism simply."
+
+Then follow up with:
+
+"Quiz me on that."
+
+StudyVoice should remember the previous topic and launch the Voice Quiz workflow.
+
+
+STUDY AGENT
+
+Say:
+
+"I have a Python exam tomorrow. Make me a 5-hour study plan for OOP, strings and arrays."
+
+Then say:
+
+"Give OOP one more hour and reduce strings."
+
+StudyVoice should update the existing study plan.
+
+
+VOICE QUIZ
+
+Say:
+
+"Quiz me on Python OOP for 3 questions."
+
+Answer each question by voice.
+
+StudyVoice should:
+
+- evaluate each answer
+- give feedback
+- adapt difficulty
+- track the score
+- identify strong and weak areas
+- generate a final diagnosis
+- recommend the next action
+
+
+VOICE INTERACTION
+=================
+
+Voice flows use:
+
+Record -> Stop -> Auto-process
+
+There is no separate submit button.
+
+
+IMPORTANT NOTES
+===============
+
+1. The GEMINI_API_KEY environment variable only exists in the current
+   PowerShell session.
+
+2. If you close PowerShell, set the API key again before running the app.
+
+3. Gemini API quotas may apply depending on the API key and model access.
+
+4. The current model used by the project is:
+
+   gemini-3.1-flash-lite-preview
+
+
+TROUBLESHOOTING
+===============
+
+If the app says the API key is missing:
+
+Set GEMINI_API_KEY again in the same PowerShell window.
+
+
+If the microphone does not work:
+
+Allow microphone permission in your browser and refresh the page.
+
+
+If the local page does not open automatically:
+
+Copy the Gradio URL from the terminal and open it manually in your browser.
+
+
+SECURITY
+========
+
+Never paste your API key into app.py or commit it to GitHub.
+
+StudyVoice reads the API key from the GEMINI_API_KEY environment variable.
