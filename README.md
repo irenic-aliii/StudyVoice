@@ -2,6 +2,21 @@
 
 ### A voice-first AI learning copilot that turns natural conversation into action.
 
+## 🎬 Demo
+
+▶️ **[Watch the StudyVoice Demo](https://drive.google.com/file/d/1DkKv24EA2fp_Kne-ggjk4up2jA3Wbhsr/view?usp=drive_link)**
+
+The demo showcases all three core modes of StudyVoice:
+
+1. **General Assistant** — asks StudyVoice to explain polymorphism in simple words.
+2. **Study Agent** — creates a structured 5-hour Python study plan focused on OOP and strings.
+3. **Voice Quiz** — launches a 3-question basic mathematics quiz, evaluates each answer, tracks the score, and generates a final learning diagnosis.
+
+Together, these workflows demonstrate the core StudyVoice learning loop:
+
+**ASK → PLAN → PRACTICE → DIAGNOSE → ADAPT**
+
+
 Most AI voice assistants follow a simple loop:
 
 > **Voice → LLM → Voice**
